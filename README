@@ -1,0 +1,82 @@
+1.The purpose of the program: 
+The purpose of the program is to learn how to use pipes to perform interprocess communication(IPC) through
+building a local chat server. 
+
+2.How to compile the program:
+Type in make in the shell. (That is, using the provided Makefile)
+
+3.How to use the program from the shell
+./server	// Start the program
+
+At the server side: 
+\add name  		 	// Add a user
+\list			 	// List current users, print <no user> if no users in the chat
+\kick name		 	// Kick out a user
+\exit       	 	// Quit the chat application
+Any other text	    // Broadcast to all the users
+
+At the user side:
+\List       		// List current users
+\exit       		// Quit the chat application
+\p2p name message 	// Send private message only to user name
+\seg                // Create a segmentation fault in the shell program and exit
+Any other text	    // Broadcast to all the users
+
+4.What exactly your program does?
+Our program is a local chat server, it is controlled by the server.c program. server.c program forks shell programs, 
+and shell program read input from stdin, and send it to the server program to process the command. And finally server program
+will send the result back to the shell's child process to print it out on stdout. One of the shell program is server's shell.
+And the other shells are the user shells. 
+
+5.Any explicit assumptions you have made
+	a. We don't need to wait for the grandchild process since waitpid cannot do that. And this is suggested by the TA on the moodle.
+   	   The following URL is the link to that post.
+
+	https://ay15.moodle.umn.edu/mod/forum/discuss.php?d=336515
+
+	b. Adding a user whose name has already exist. This also mentioned by TA in the following post, we do not need to handle duplicated 
+	   user name situation. 
+
+	https://ay15.moodle.umn.edu/mod/forum/discuss.php?d=334716
+
+	c. Do not need to check for blank name. This also mentioned by TA in the following post, we do not need to handle empty 
+	   user name situation. 
+
+	https://ay15.moodle.umn.edu/mod/forum/discuss.php?d=332133
+
+	d. The sample server is the correct version. Behavior of my server is exactly the same as the sample server.
+
+6.You strategies for error handling
+a)	Invalid user name: 		
+	
+	For invalid user name in the \p2p command, user shell make the private call will 
+	have a message: "User <Invalid name> does not found"
+	
+	
+	Reach Maximum user size:
+	
+	For trying to add more than MAX_USR( defined in util.h ) users. Server shell will  
+	print out a message: "Could not add user: Max user limit reached"
+
+b)  Exiting the SERVER shell should close all other user sessions:
+	
+	cleanup_server function will be used to close all the user sessions and end SERVER shell. 
+
+c)  Error code returned by various system/wrapper-library calls.
+	
+	the return value of all system call are checked. If a -1 is seen, perror will be used to output error message and exit(0) will 
+	be used to exit the program. 
+
+d)  There should be no ”Broken-Pipe” error when your program executes. Also, appropriate cleanup must be done whenever 
+	any of the child-processes (SERVER SHELL/USER SHELL/xterm processes) terminates. For eg., closing the pipe ends.
+
+	Server process will create two pipes before it fork the shell process. One for reading the message from the shell process, and the 
+	other one is for writing to the shell process's child process. After server process fork the shell process, it will close the read 
+	end of the process from server to shell's child( ptoc[0] ) and the write end of the pipe from the shell to server( ctop[1] ); 
+ 	Shell process will close the opposite read and write ends of the pipes respect to the parent process. And when one of user ends, 
+	the other two pipe ends will be closed (ptoc[1] and ctop[0]).	When the server process ends, ptoc[1] and ctop[0] created for the 
+	server shell will also be closed. 
+
+
+
+
